@@ -35,13 +35,13 @@ public class SparkDemo implements Serializable {
         CassandraJavaRDD<CassandraRow> cassandraRowsRDD = javaFunctions(mContext)
                 .cassandraTable("donnees_urbaines", "opendata_wifi");
 
-        JavaRDD<Double> duration = cassandraRowsRDD.select("duration")
-                .where("id=?", "5ee9c4929b68edfb9d1697138ca77bb08ec7e70b")
+        JavaRDD<Double> duration = cassandraRowsRDD.select("duration", "start_time")
                 .map(CassandraRow::toMap)
+                .filter(entry -> ((String) entry.get("start_time")).contains("2016-05-21"))
                 .map(entry -> (double) entry.get("duration"))
                 .cache();
 
-        System.out.println("duration: " + duration.first());
+        System.out.println("count: " + duration.count());
 
     }
 }
