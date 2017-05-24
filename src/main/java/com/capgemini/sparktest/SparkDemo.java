@@ -3,6 +3,7 @@ package com.capgemini.sparktest;
 import com.datastax.spark.connector.japi.CassandraRow;
 import com.datastax.spark.connector.japi.rdd.CassandraJavaRDD;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.Serializable;
@@ -30,12 +31,17 @@ public class SparkDemo implements Serializable {
     }
 
     private void run() {
-        CassandraJavaRDD<OpenDataWifi> metricRdd = javaFunctions(mContext)
-                .cassandraTable("donnees_urbaines", "opendata_wifi", mapRowTo(OpenDataWifi.class))
-                .select("start_time", "browser", "device", "os", "site");
 
-        metricRdd
-                .filter(metric -> metric.getId().equals("5ee9c4929b68edfb9d1697138ca77bb08ec7e70b"))
-                .foreach(openDataWifi -> System.out.println("result: " + openDataWifi.getDevice() + ", " + openDataWifi.getBrowser()));
+        CassandraJavaRDD<CassandraRow> cassandraRowsRDD = javaFunctions(mContext)
+                .cassandraTable("donnees_urbaines", "opendata_wifi");
+
+        JavaRDD<Double> duration = cassandraRowsRDD.select("duration")
+                .where("id=?", "5ee9c4929b68edfb9d1697138ca77bb08ec7e70b")
+                .map(CassandraRow::toMap)
+                .map(entry -> (double) entry.get("duration"))
+                .cache();
+
+        System.out.println("duration: " + duration.first());
+
     }
 }
