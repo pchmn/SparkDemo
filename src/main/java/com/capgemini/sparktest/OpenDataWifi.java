@@ -1,13 +1,51 @@
 package com.capgemini.sparktest;
 
 
-public class OpenDataWifi {
+import java.io.Serializable;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 
-    private String id, start_time, browser, device, language, site;
-    private int duration;
-    private double input_octets, output_octets;
+public class OpenDataWifi implements Serializable {
+
+    private String id, browser, device, language, site, os;
+    private Date start_time;
+    private double duration, input_octets, output_octets;
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 
     public OpenDataWifi() {
+    }
+
+    public OpenDataWifi(String id, String start_time, String browser, String device, String language, String site, String os, double duration, double input_octets, double output_octets) {
+        this.id = id;
+        try {
+            this.start_time = toNearestWholeHour(dateFormat.parse(start_time));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        this.browser = browser;
+        this.device = device;
+        this.language = language;
+        this.site = site;
+        this.os = os;
+        this.duration = duration;
+        this.input_octets = input_octets;
+        this.output_octets = output_octets;
+    }
+
+    static Date toNearestWholeHour(Date d) {
+        Calendar c = new GregorianCalendar();
+        c.setTime(d);
+
+        if (c.get(Calendar.MINUTE) >= 30)
+            c.add(Calendar.HOUR, 1);
+
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+
+        return c.getTime();
     }
 
     public String getId() {
@@ -18,11 +56,11 @@ public class OpenDataWifi {
         this.id = id;
     }
 
-    public String getStart_time() {
+    public Date getStart_time() {
         return start_time;
     }
 
-    public void setStart_time(String start_time) {
+    public void setStart_time(Date start_time) {
         this.start_time = start_time;
     }
 
@@ -58,11 +96,11 @@ public class OpenDataWifi {
         this.site = site;
     }
 
-    public int getDuration() {
+    public double getDuration() {
         return duration;
     }
 
-    public void setDuration(int duration) {
+    public void setDuration(double duration) {
         this.duration = duration;
     }
 
@@ -80,5 +118,28 @@ public class OpenDataWifi {
 
     public void setOutput_octets(double output_octets) {
         this.output_octets = output_octets;
+    }
+
+    public String getOs() {
+        return os;
+    }
+
+    public void setOs(String os) {
+        this.os = os;
+    }
+
+    @Override
+    public String toString() {
+        return "OpenDataWifi{" +
+                "id='" + id + '\'' +
+                ", start_time='" + start_time + '\'' +
+                ", browser='" + browser + '\'' +
+                ", device='" + device + '\'' +
+                ", language='" + language + '\'' +
+                ", site='" + site + '\'' +
+                ", duration=" + duration +
+                ", input_octets=" + input_octets +
+                ", output_octets=" + output_octets +
+                '}';
     }
 }
