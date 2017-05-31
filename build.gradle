@@ -15,4 +15,6 @@ dependencies {
     // spark
     compile group: 'org.apache.spark', name: 'spark-core_2.10', version: '2.1.1'
     compile group: 'com.datastax.spark', name: 'spark-cassandra-connector_2.10', version: '2.0.1'
+    // retrofit
+    compile 'com.squareup.retrofit2:retrofit:2.3.0'
 }
