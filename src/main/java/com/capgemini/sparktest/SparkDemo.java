@@ -1,42 +1,52 @@
 package com.capgemini.sparktest;
 
+import com.capgemini.sparktest.retrofit.DarkSkyService;
+import com.capgemini.sparktest.retrofit.Weather;
 import com.datastax.spark.connector.japi.CassandraRow;
 import com.datastax.spark.connector.japi.rdd.CassandraJavaRDD;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import scala.Tuple2;
+import retrofit2.Call;
+import retrofit2.GsonConverterFactory;
+import retrofit2.Response;
+import retrofit2.Retrofit;
 
+import java.io.IOException;
 import java.io.Serializable;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 
 import static com.datastax.spark.connector.japi.CassandraJavaUtil.javaFunctions;
-import static com.datastax.spark.connector.japi.CassandraJavaUtil.mapRowTo;
 
 
 public class SparkDemo implements Serializable {
 
     private JavaSparkContext mContext;
+    private DarkSkyService mDarkSkyService;
 
-    private SparkDemo(SparkConf conf) {
+    private SparkDemo(SparkConf conf, Retrofit retrofit) {
         mContext = new JavaSparkContext(conf);
+        mDarkSkyService = retrofit.create(DarkSkyService.class);
     }
 
-    public static void main(String[] args) {
-        SparkConf conf = new SparkConf(true)
+    public static void main(String[] args) throws IOException {
+        /*SparkConf conf = new SparkConf(true)
                 .setMaster("local")
                 .setAppName("OpenData Wifi Paris")
                 .set("spark.cassandra.connection.host", "127.0.0.1");
 
-        SparkDemo app = new SparkDemo(conf);
-        app.run();
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://api.darksky.net/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        SparkDemo app = new SparkDemo(conf, retrofit);
+        app.run();*/
+        darkSky();
     }
 
-    private void run() {
+    private void run() throws IOException {
 
         CassandraJavaRDD<CassandraRow> cassandraRowsRDD = javaFunctions(mContext)
                 .cassandraTable("donnees_urbaines", "opendata_wifi");
@@ -71,10 +81,33 @@ public class SparkDemo implements Serializable {
 
         System.out.println(openDataWifiJavaRDD.first().toString());
         for(Map.Entry<Date, Iterable<OpenDataWifi>> entry: openDataWifiJavaRDD.collectAsMap().entrySet()) {
-            System.out.println(entry.getKey() + ": " + entry.getValue().spliterator().getExactSizeIfKnown());
-            for(OpenDataWifi entry2: entry.getValue()) {
-                long timestamp = entry2.getStart_time().getTime() / 1000;
-            }
+            // meteo
+            Call<Weather> call = mDarkSkyService.timeMachineRequest("48.866667", "2.333333", entry.getKey().getTime());
+            Response<Weather> response = call.execute();
+            Weather weather = response.body();
+
+            if(response.isSuccessful())
+                System.out.println(entry.getKey() + ": " + entry.getValue().spliterator().getExactSizeIfKnown() + ", " + weather.getCurrently().getTemperature());
+            else
+                System.out.println(entry.getKey() + ": " + entry.getValue().spliterator().getExactSizeIfKnown() + ", error");
         }
+    }
+
+    private static void darkSky() throws IOException {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://api.darksky.net/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        DarkSkyService service = retrofit.create(DarkSkyService.class);
+
+        Call<Weather> call = service.timeMachineRequest("48.866667", "2.333333", 1496236324);
+        Response<Weather> response = call.execute();
+        Weather weather = response.body();
+
+        if(response.isSuccessful())
+            System.out.println(weather.getCurrently().getTemperature());
+        else
+            System.out.println("bug");
     }
 }
