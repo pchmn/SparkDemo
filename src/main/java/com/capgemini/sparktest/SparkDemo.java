@@ -5,12 +5,20 @@ import com.capgemini.sparktest.retrofit.Weather;
 import com.datastax.spark.connector.japi.CassandraRow;
 import com.datastax.spark.connector.japi.rdd.CassandraJavaRDD;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaDoubleRDD;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.mllib.linalg.Vectors;
+import org.apache.spark.mllib.regression.LabeledPoint;
+import org.apache.spark.mllib.regression.LinearRegressionModel;
+import org.apache.spark.mllib.regression.LinearRegressionWithSGD;
 import retrofit2.Call;
 import retrofit2.GsonConverterFactory;
 import retrofit2.Response;
 import retrofit2.Retrofit;
+import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -80,17 +88,50 @@ public class SparkDemo implements Serializable {
         System.out.println("count: " + duration.count());*/
 
         System.out.println(openDataWifiJavaRDD.first().toString());
-        for(Map.Entry<Date, Iterable<OpenDataWifi>> entry: openDataWifiJavaRDD.collectAsMap().entrySet()) {
+        /*for(Map.Entry<Date, Iterable<OpenDataWifi>> entry: openDataWifiJavaRDD.collectAsMap().entrySet()) {
             // meteo
             Call<Weather> call = mDarkSkyService.timeMachineRequest("48.866667", "2.333333", entry.getKey().getTime());
             Response<Weather> response = call.execute();
             Weather weather = response.body();
 
+
+
             if(response.isSuccessful())
                 System.out.println(entry.getKey() + ": " + entry.getValue().spliterator().getExactSizeIfKnown() + ", " + weather.getCurrently().getTemperature());
             else
                 System.out.println(entry.getKey() + ": " + entry.getValue().spliterator().getExactSizeIfKnown() + ", error");
-        }
+        }*/
+
+        JavaRDD<LabeledPoint> data = openDataWifiJavaRDD.map((Function<Tuple2<Date, Iterable<OpenDataWifi>>, LabeledPoint>) v1 -> {
+            Call<Weather> call = mDarkSkyService.timeMachineRequest("48.866667", "2.333333", v1._1.getTime());
+            Response<Weather> response = call.execute();
+            Weather weather = response.body();
+
+            return new LabeledPoint(v1._2.spliterator().getExactSizeIfKnown(), Vectors.dense(
+                    weather.getCurrently().getTemperature(),
+                    weather.getCurrently().getCloudCover(),
+                    weather.getCurrently().getDewPoint(),
+                    weather.getCurrently().getHumidity(),
+                    weather.getCurrently().getOzone(),
+                    weather.getCurrently().getPressure(),
+                    weather.getCurrently().getWindSpeed(),
+                    weather.getCurrently().getWindBearing()));
+        });
+
+        int numIterations = 100;
+
+        LinearRegressionModel model = LinearRegressionWithSGD.train(JavaRDD.toRDD(data), numIterations);
+
+        JavaRDD<Tuple2<Double, Double>> valuesAndPreds = data.map(
+                (Function<LabeledPoint, Tuple2<Double, Double>>) point -> {
+                    double prediction = model.predict(point.features());
+                    return new Tuple2<>(prediction, point.label());
+                }
+        );
+        double MSE = new JavaDoubleRDD(valuesAndPreds.map(
+                (Function<Tuple2<Double, Double>, Object>) pair -> Math.pow(pair._1() - pair._2(), 2.0)
+        ).rdd()).mean();
+        System.out.println("training Mean Squared Error = " + MSE);
     }
 
     private static void darkSky() throws IOException {
