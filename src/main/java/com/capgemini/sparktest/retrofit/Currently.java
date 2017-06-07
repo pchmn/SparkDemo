@@ -5,14 +5,13 @@ public class Currently {
 
     private long time;
     private String summary, icon;
-    private int nearestStormDistance, precipIntensity, precipProbability;
-    private double temperature, apparentTemperature, dewPoint, humidity,
+    private double nearestStormDistance, precipIntensity, precipProbability, temperature, apparentTemperature, dewPoint, humidity,
             windSpeed, windBearing, visibility, cloudCover, pressure, ozone;
 
     public Currently() {
     }
 
-    public Currently(long time, String summary, String icon, int nearestStormDistance, int precipIntensity, int precipProbability, double temperature, double apparentTemperature, double dewPoint, double humidity, double windSpeed, double windBearing, double visibility, double cloudCover, double pressure, double ozone) {
+    public Currently(long time, String summary, String icon, double nearestStormDistance, double precipIntensity, double precipProbability, double temperature, double apparentTemperature, double dewPoint, double humidity, double windSpeed, double windBearing, double visibility, double cloudCover, double pressure, double ozone) {
         this.time = time;
         this.summary = summary;
         this.icon = icon;
@@ -55,27 +54,27 @@ public class Currently {
         this.icon = icon;
     }
 
-    public int getNearestStormDistance() {
+    public double getNearestStormDistance() {
         return nearestStormDistance;
     }
 
-    public void setNearestStormDistance(int nearestStormDistance) {
+    public void setNearestStormDistance(double nearestStormDistance) {
         this.nearestStormDistance = nearestStormDistance;
     }
 
-    public int getPrecipIntensity() {
+    public double getPrecipIntensity() {
         return precipIntensity;
     }
 
-    public void setPrecipIntensity(int precipIntensity) {
+    public void setPrecipIntensity(double precipIntensity) {
         this.precipIntensity = precipIntensity;
     }
 
-    public int getPrecipProbability() {
+    public double getPrecipProbability() {
         return precipProbability;
     }
 
-    public void setPrecipProbability(int precipProbability) {
+    public void setPrecipProbability(double precipProbability) {
         this.precipProbability = precipProbability;
     }
 
